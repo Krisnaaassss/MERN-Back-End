@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
 import cookieParser from "cookie-parser";
-
 dotenv.config();
 
 const app = express();
