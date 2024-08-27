@@ -1,1 +1,1 @@
-# MERN-STACK
+# MERN
