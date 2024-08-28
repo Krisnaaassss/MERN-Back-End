@@ -19,7 +19,7 @@ const createSendResToken = (user, statusCode, res) => {
     security: isDev,
   };
 
-  res.cookie('jwt', token, cookieOption);
+  res.cookie("jwt", token, cookieOption);
 
   user.password = undefined;
 
@@ -31,13 +31,13 @@ const createSendResToken = (user, statusCode, res) => {
 export const registerUser = asyncHandler(async (req, res) => {
   const isOwner = (await User.countDocuments()) === 0;
 
-  const role = isOwner ? "admin" : "user";
+  const role = isOwner ? "owner" : "user";
 
   const createUser = await User.create({
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
-    role,
+    role: role,
   });
 
   createSendResToken(createUser, 201, res);

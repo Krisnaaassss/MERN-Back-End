@@ -55,5 +55,17 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 });
 
 export const fileUpload = asyncHandler(async (req, res) => {
-  res.send("File Upload");
+  const file = req.file;
+  if (!file) {
+    res.status(400);
+    throw new Error("Please Upload a File");
+  }
+
+  const imageName = file.filename;
+  const pathImage = `/uploads/${imageName}`;
+
+  res.status(201).json({
+    message: "image Uploaded",
+    image: pathImage,
+  });
 });
