@@ -11,11 +11,47 @@ export const createProduct = asyncHandler(async (req, res) => {
 });
 
 export const allProduct = asyncHandler(async (req, res) => {
-  const data = await Product.find();
+  //request query
+  const queryObj = { ...req.query };
+
+  // untuk menghilangkan page dan limit dari query
+  const excludeFields = ["page", "limit", "name"];
+  excludeFields.forEach((element) => delete queryObj[element]);
+
+  let query;
+
+  if (req.query.name) {
+    query = Product.find({
+      name: {
+        $regex: req.query.name,
+        $options: "i",
+      },
+    });
+  } else {
+    query = Product.find();
+  }
+
+  //pagination
+  const page = req.query.page * 1 || 1;
+  const limitData = req.query.limit * 1 || 10;
+  const skipData = (page - 1) * limitData;
+
+  query = query.skip(skipData).limit(limitData);
+
+  let countProduct = await Product.countDocuments(queryObj);
+  if (req.query.page) {
+    if (skipData >= countProduct) {
+      res.status(404);
+      throw new Error("Page Not Found");
+    }
+  }
+
+  const data = await query;
 
   res.status(201).json({
-    message: "Berhasil Menampilkan All Product",
+    message: "Berhasil Menampilkan Product",
     data: data,
+    count: countProduct,
   });
 });
 

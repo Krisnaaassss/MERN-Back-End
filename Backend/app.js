@@ -1,10 +1,12 @@
 import express from "express";
 import authrouter from "./routes/authRouter.js";
 import productRouter from "./routes/productRouter.js";
+import orderRouter from "./routes/orderRouter.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
 import cookieParser from "cookie-parser";
+
 dotenv.config();
 
 const app = express();
@@ -19,6 +21,7 @@ app.use(express.static("public"));
 //Parent Router
 app.use("/api/v1/auth", authrouter);
 app.use("/api/v1/product", productRouter);
+app.use("/api/v1/order", orderRouter);
 
 //jika error
 app.use(notFound);
