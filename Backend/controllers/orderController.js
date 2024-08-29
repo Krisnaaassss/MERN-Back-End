@@ -5,7 +5,7 @@ import Order from "../models/orderModel.js";
 export const createOrder = asyncHandler(async (req, res) => {
   const { email, firstName, lastName, phone, itemsDetail, cartItem } = req.body;
 
-  if (!cartItem || cartItem.length < 0) {
+  if (!cartItem || cartItem.length < 1) {
     res.status(400);
     throw new Error("Cart is empty");
   }
@@ -48,19 +48,28 @@ export const createOrder = asyncHandler(async (req, res) => {
 });
 
 export const allOrder = asyncHandler(async (req, res) => {
+  const orders = await Order.find();
+
   res.status(200).json({
+    orders,
     message: "All Order Created",
   });
 });
 
 export const detailOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
   res.status(200).json({
+    data: order,
     message: "Detail Order Created",
   });
 });
 
 export const currentUserOrder = asyncHandler(async (req, res) => {
+  const userOrder = await Order.find({ user: req.user._id });
+
   res.status(200).json({
+    data: userOrder,
     message: "Suscess Get Current User Order",
   });
 });
