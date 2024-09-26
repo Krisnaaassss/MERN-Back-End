@@ -49,11 +49,16 @@ export const allProduct = asyncHandler(async (req, res) => {
   }
 
   const data = await query;
+  const totalPage = Math.ceil(countProduct / limitData);
 
   res.status(201).json({
     message: "Berhasil Menampilkan Product",
     data: data,
-    count: countProduct,
+    pagination: {
+      totalPage,
+      page,
+      totalProduct: countProduct,
+    },
   });
 });
 
@@ -107,6 +112,7 @@ export const fileUpload = asyncHandler(async (req, res) => {
         message: "success upload",
         url: result.secure_url,
       });
-    });
-    streamifier.createReadStream(req.file.buffer).pipe(stream);
+    }
+  );
+  streamifier.createReadStream(req.file.buffer).pipe(stream);
 });
