@@ -2,6 +2,9 @@ import asyncHandler from "../middlewares/asyncHandler.js";
 import Product from "../models/productModel.js";
 import Order from "../models/orderModel.js";
 import midtrans from "midtrans-client";
+import { dotenv } from "dotenv";
+
+dotenv.config();
 
 let snap = new midtransClient.Snap({
   // Set to true if you want Production Environment (accept real transaction).
@@ -18,6 +21,7 @@ export const createOrder = asyncHandler(async (req, res) => {
   }
 
   let orderItem = [];
+  let orderMidtrans = [];
   let total = 0;
 
   //looping cartItem dan menghitung total
@@ -38,11 +42,20 @@ export const createOrder = asyncHandler(async (req, res) => {
       product: _id,
     };
 
+    const shortName = name.substring(0, 30);
+    const singleProductMidtrans = {
+      quantity: cart.quantity,
+      name: shortName,
+      price,
+      id: _id,
+    };
+
     //menambahkan total dengan hasil perkalian quantity dan price
     total += cart.quantity * price;
 
     //menambahkan objek singleProduct ke dalam array orderItem
     orderItem = [...orderItem, singleProduct];
+    orderMidtrans = [...orderMidtrans, singleProductMidtrans];
   }
 
   const order = await Order.create({
@@ -60,7 +73,7 @@ export const createOrder = asyncHandler(async (req, res) => {
       order_id: order._id,
       gross_amount: total,
     },
-    item_details: orderItem,
+    item_details: orde,
     customer_details: {
       first_name: firstName,
       last_name: lastName,
