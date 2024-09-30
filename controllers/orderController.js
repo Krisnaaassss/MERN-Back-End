@@ -1,6 +1,13 @@
 import asyncHandler from "../middlewares/asyncHandler.js";
 import Product from "../models/productModel.js";
 import Order from "../models/orderModel.js";
+import midtrans from "midtrans-client";
+
+let snap = new midtransClient.Snap({
+  // Set to true if you want Production Environment (accept real transaction).
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER,
+});
 
 export const createOrder = asyncHandler(async (req, res) => {
   const { email, firstName, lastName, phone, itemsDetail, cartItem } = req.body;
@@ -13,12 +20,16 @@ export const createOrder = asyncHandler(async (req, res) => {
   let orderItem = [];
   let total = 0;
 
+  //looping cartItem dan menghitung total
   for (const cart of cartItem) {
+    //mencari product berdasarkan id yang dikirim
     const productData = await Product.findOne({ _id: cart.product });
     if (!productData) {
       res.status(404);
       throw new Error("ID Product Not Found");
     }
+
+    //membuat objek singleProduct yang berisi quantity, name, price dan id product
     const { name, price, _id } = productData;
     const singleProduct = {
       quantity: cart.quantity,
@@ -26,7 +37,11 @@ export const createOrder = asyncHandler(async (req, res) => {
       price,
       product: _id,
     };
+
+    //menambahkan total dengan hasil perkalian quantity dan price
     total += cart.quantity * price;
+
+    //menambahkan objek singleProduct ke dalam array orderItem
     orderItem = [...orderItem, singleProduct];
   }
 
@@ -40,10 +55,27 @@ export const createOrder = asyncHandler(async (req, res) => {
     user: req.user._id,
   });
 
+  let parameters = {
+    transaction_details: {
+      order_id: order._id,
+      gross_amount: total,
+    },
+    item_details: orderItem,
+    customer_details: {
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      phone: phone,
+    },
+  };
+
+  const token = await snap.createTransactionToken(parameters);
+
   res.status(201).json({
     total,
     order,
     message: "Order Created",
+    token,
   });
 });
 
