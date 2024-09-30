@@ -73,7 +73,7 @@ export const createOrder = asyncHandler(async (req, res) => {
       order_id: order._id,
       gross_amount: total,
     },
-    item_details: orde,
+    item_details: orderMidtrans,
     customer_details: {
       first_name: firstName,
       last_name: lastName,
