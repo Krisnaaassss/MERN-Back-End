@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const snap = new midtrans.Snap({
+let snap = new midtrans.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER,
 });
@@ -145,23 +145,7 @@ export const callbackPayment = asyncHandler(async (req, res) => {
   }
 
   if (transactionStatus == "capture" || transactionStatus == "settlement") {
-    if (fraudStatus == "accept") {
-      const orderProduct = orderData.itemsDetail;
-
-      for (const itemProduct of orderProduct) {
-        const productData = await Product.findById(itemProduct.product);
-
-        if (!productData) {
-          res.status(404);
-          throw new Error("Product not found");
-        }
-
-        productData.stock = productData.stock - itemProduct.quantity;
-        await productData.save();
-      }
-
-      orderData.status = "success";
-    }
+    orderData.status = "success";
   } else if (
     transactionStatus == "cancel" ||
     transactionStatus == "deny" ||
