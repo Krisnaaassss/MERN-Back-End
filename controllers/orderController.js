@@ -71,7 +71,7 @@ export const createOrder = asyncHandler(async (req, res) => {
 
   const parameters = {
     transaction_details: {
-      order_id: order._id.toString(),
+      order_id: order._id.toString(), // harus di konversi ke string agar sesuai dengan tipe data yang diharapkan oleh Midtrans
       gross_amount: Math.round(total),
     },
     item_details: orderMidtrans,
@@ -119,17 +119,63 @@ export const detailOrder = asyncHandler(async (req, res) => {
   });
 });
 
-
 export const currentUserOrder = asyncHandler(async (req, res) => {
-  const userOrders = await Order.find({ user: req.user._id })
-    .sort({ createdAt: -1 });
+  //-1 dalam .sort() berarti mengurutkan data berdasarkan createdAt dalam urutan terbalik (baru ke lama). Jadi, order yang terbaru akan muncul di paling atas.
+  const userOrders = await Order.find({ user: req.user._id }).sort({
+    createdAt: -1,
+  });
   res.status(200).json({
     data: userOrders,
     message: "Current user orders retrieved successfully",
   });
 });
 
-//  * Penjelasan kode di atas:
-//  * -1 dalam .sort() berarti mengurutkan data berdasarkan createdAt dalam
-//  * urutan terbalik (baru ke lama). Jadi, order yang terbaru akan
-//  * muncul di paling atas.
+export const callbackPayment = asyncHandler(async (req, res) => {
+  const statusResponse = snap.transaction.notification(req.body);
+
+  let orderId = statusResponse.order_id;
+  let transactionStatus = statusResponse.transaction_status;
+  let fraudStatus = statusResponse.fraud_status;
+
+  const orderData = await Order.findById(orderId);
+
+  if (!orderData) {
+    return res.status(404);
+    throw new Error("Order not found");
+  }
+
+  if (transactionStatus == "capture" || transactionStatus == "settlement") {
+    if (fraudStatus == "accept") {
+      const orderProduct = orderData.itemsDetail;
+
+      for (const itemProduct of orderProduct) {
+        const productData = await Product.findById(itemProduct.product);
+
+        if (!productData) {
+          res.status(404);
+          throw new Error("Product not found");
+        }
+
+        productData.stock = productData.stock - itemProduct.quantity;
+        await productData.save();
+      }
+
+      orderData.status = "success";
+    }
+  } else if (
+    transactionStatus == "cancel" ||
+    transactionStatus == "deny" ||
+    transactionStatus == "expire"
+  ) {
+    // TODO set transaction status on your database to 'failure'
+    // and response with 200 OK
+    orderData.status = "failed";
+  } else if (transactionStatus == "pending") {
+    // TODO set transaction status on your database to 'pending' / waiting payment
+    // and response with 200 OK
+    orderData.status = "pending";
+  }
+
+  await orderData.save();
+  return res.status(200).send("Payment notification received successfully");
+});

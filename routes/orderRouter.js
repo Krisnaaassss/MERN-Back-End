@@ -8,6 +8,7 @@ import {
   createOrder,
   currentUserOrder,
   detailOrder,
+  callbackPayment,
 } from "../controllers/orderController.js";
 
 const router = express.Router();
@@ -27,5 +28,8 @@ router.get("/:id", protectMiddleware, adminMiddleware, detailOrder);
 //get /api/v1/order/current/user
 // only user role has login
 router.get("/current/user", protectMiddleware, currentUserOrder);
+
+//post /api/v1/order/callback/midtrans
+router.post("/callback/midtrans", callbackPayment);
 
 export default router;
