@@ -131,7 +131,7 @@ export const currentUserOrder = asyncHandler(async (req, res) => {
 });
 
 export const callbackPayment = asyncHandler(async (req, res) => {
-  const statusResponse = snap.transaction.notification(req.body);
+  const statusResponse = await snap.transaction.notification(req.body);
 
   let orderId = statusResponse.order_id;
   let transactionStatus = statusResponse.transaction_status;
@@ -140,7 +140,7 @@ export const callbackPayment = asyncHandler(async (req, res) => {
   const orderData = await Order.findById(orderId);
 
   if (!orderData) {
-    return res.status(404);
+    res.status(404);
     throw new Error("Order not found");
   }
 
