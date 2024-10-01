@@ -5,10 +5,10 @@ import {
 } from "../middlewares/authMiddleware.js";
 import {
   allOrder,
+  callbackPayment,
   createOrder,
   currentUserOrder,
   detailOrder,
-  callbackPayment,
 } from "../controllers/orderController.js";
 
 const router = express.Router();
