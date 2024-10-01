@@ -24,7 +24,7 @@ router.post("/", protectMiddleware, adminMiddleware, createProduct);
 // READ
 // get/api/v1/product
 router.get("/", allProduct);
-  
+
 //Detail Product
 // get/api/v1/product/:id
 router.get("/:id", detailProduct);

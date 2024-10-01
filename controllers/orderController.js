@@ -6,37 +6,41 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-let snap = new midtrans.Snap({
-  // Set to true if you want Production Environment (accept real transaction).
+const snap = new midtrans.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER,
 });
 
 export const createOrder = asyncHandler(async (req, res) => {
-  const { email, firstName, lastName, phone, itemsDetail, cartItem } = req.body;
+  const { email, firstName, lastName, phone, cartItem } = req.body;
 
   if (!cartItem || cartItem.length < 1) {
-    res.status(400);
-    throw new Error("Cart is empty");
+    return res.status(400).json({ message: "Cart is empty" });
   }
 
-  let orderItem = [];
+  let orderItems = [];
   let orderMidtrans = [];
   let total = 0;
 
-  //looping cartItem dan menghitung total
   for (const cart of cartItem) {
-    //mencari product berdasarkan id yang dikirim
-    const productData = await Product.findOne({ _id: cart.product });
+    const productData = await Product.findById(cart.product);
     if (!productData) {
-      res.status(404);
-      throw new Error("ID Product Not Found");
+      return res
+        .status(404)
+        .json({ message: `Product not found: ${cart.product}` });
     }
 
-    //membuat objek singleProduct yang berisi quantity, name, price dan id product
     const { name, price, _id } = productData;
+    const quantity = parseInt(cart.quantity);
+
+    if (isNaN(quantity) || quantity <= 0) {
+      return res
+        .status(400)
+        .json({ message: `Invalid quantity for product: ${name}` });
+    }
+
     const singleProduct = {
-      quantity: cart.quantity,
+      quantity,
       name,
       price,
       product: _id,
@@ -44,18 +48,15 @@ export const createOrder = asyncHandler(async (req, res) => {
 
     const shortName = name.substring(0, 30);
     const singleProductMidtrans = {
-      quantity: cart.quantity,
-      name: shortName,
+      id: _id.toString(),
       price,
-      id: _id,
+      quantity,
+      name: shortName,
     };
 
-    //menambahkan total dengan hasil perkalian quantity dan price
-    total += cart.quantity * price;
-
-    //menambahkan objek singleProduct ke dalam array orderItem
-    orderItem = [...orderItem, singleProduct];
-    orderMidtrans = [...orderMidtrans, singleProductMidtrans];
+    total += quantity * price;
+    orderItems.push(singleProduct);
+    orderMidtrans.push(singleProductMidtrans);
   }
 
   const order = await Order.create({
@@ -63,58 +64,72 @@ export const createOrder = asyncHandler(async (req, res) => {
     firstName,
     lastName,
     phone,
-    itemsDetail: orderItem,
+    itemsDetail: orderItems,
     total,
     user: req.user._id,
   });
 
-  let parameters = {
+  const parameters = {
     transaction_details: {
-      order_id: order._id,
-      gross_amount: total,
+      order_id: order._id.toString(),
+      gross_amount: Math.round(total),
     },
     item_details: orderMidtrans,
     customer_details: {
       first_name: firstName,
       last_name: lastName,
-      email: email,
-      phone: phone,
+      email,
+      phone,
     },
   };
 
-  const token = await snap.createTransactionToken(parameters);
-
-  res.status(201).json({
-    total,
-    order,
-    message: "Order Created",
-    token,
-  });
+  try {
+    const token = await snap.createTransactionToken(parameters);
+    res.status(201).json({
+      orderId: order._id,
+      total,
+      message: "Order created successfully",
+      token,
+    });
+  } catch (error) {
+    console.error("Midtrans error:", error);
+    res.status(500).json({ message: "Error creating payment token" });
+  }
 });
 
 export const allOrder = asyncHandler(async (req, res) => {
-  const orders = await Order.find();
+  // Mendapatkan semua data order dari database
+  const orders = await Order.find().sort({ createdAt: -1 });
 
+  // Mengembalikan response dengan data order dalam format JSON
   res.status(200).json({
     orders,
-    message: "All Order Created",
+    message: "All orders retrieved successfully",
   });
 });
 
 export const detailOrder = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
-
+  if (!order) {
+    return res.status(404).json({ message: "Order not found" });
+  }
   res.status(200).json({
     data: order,
-    message: "Detail Order Created",
+    message: "Order details retrieved successfully",
   });
 });
+
 
 export const currentUserOrder = asyncHandler(async (req, res) => {
-  const userOrder = await Order.find({ user: req.user._id });
-
+  const userOrders = await Order.find({ user: req.user._id })
+    .sort({ createdAt: -1 });
   res.status(200).json({
-    data: userOrder,
-    message: "Suscess Get Current User Order",
+    data: userOrders,
+    message: "Current user orders retrieved successfully",
   });
 });
+
+//  * Penjelasan kode di atas:
+//  * -1 dalam .sort() berarti mengurutkan data berdasarkan createdAt dalam
+//  * urutan terbalik (baru ke lama). Jadi, order yang terbaru akan
+//  * muncul di paling atas.
