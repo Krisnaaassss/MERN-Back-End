@@ -145,6 +145,14 @@ export const callbackPayment = asyncHandler(async (req, res) => {
 
   if (transactionStatus == "capture" || transactionStatus == "settlement") {
     orderData.status = "success";
+    for (const item of orderData.itemsDetail) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        product.stock -= item.quantity;
+        if (product.stock < 0) product.stock = 0; 
+        await product.save();
+      }
+    }
   } else if (
     transactionStatus == "cancel" ||
     transactionStatus == "deny" ||
