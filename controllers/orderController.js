@@ -30,7 +30,13 @@ export const createOrder = asyncHandler(async (req, res) => {
         .json({ message: `Product not found: ${cart.product}` });
     }
 
-    const { name, price, _id } = productData;
+    const { name, price, _id, stock } = productData;
+
+    if (cart.quantity > stock) {
+      res.status(404);
+      throw new Error(`Product out of stock: ${name} product out of stock`);
+    }
+
     const quantity = parseInt(cart.quantity);
 
     if (isNaN(quantity) || quantity <= 0) {
@@ -149,7 +155,8 @@ export const callbackPayment = asyncHandler(async (req, res) => {
       const product = await Product.findById(item.product);
       if (product) {
         product.stock -= item.quantity;
-        if (product.stock < 0) product.stock = 0; 
+        // jika product.stock menjadi nilai negatif, maka ubah menjadi 0 (tidak boleh minus stock)
+        if (product.stock < 0) product.stock = 0;
         await product.save();
       }
     }
