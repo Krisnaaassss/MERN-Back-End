@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-let snap = new midtrans.Snap({
+const snap = new midtrans.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER,
 });
@@ -135,7 +135,6 @@ export const callbackPayment = asyncHandler(async (req, res) => {
 
   let orderId = statusResponse.order_id;
   let transactionStatus = statusResponse.transaction_status;
-  let fraudStatus = statusResponse.fraud_status;
 
   const orderData = await Order.findById(orderId);
 
@@ -151,12 +150,8 @@ export const callbackPayment = asyncHandler(async (req, res) => {
     transactionStatus == "deny" ||
     transactionStatus == "expire"
   ) {
-    // TODO set transaction status on your database to 'failure'
-    // and response with 200 OK
     orderData.status = "failed";
   } else if (transactionStatus == "pending") {
-    // TODO set transaction status on your database to 'pending' / waiting payment
-    // and response with 200 OK
     orderData.status = "pending";
   }
 
